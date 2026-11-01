@@ -13,9 +13,12 @@ log = logging.getLogger(__name__)
 class Notifier:
     def __init__(self):
         self.tray_icon = None  # set by tray.py when a tray is running
+        self.muted = False     # demo mode stays quiet
 
     def notify(self, title: str, message: str) -> None:
         log.info("notify: %s - %s", title, message)
+        if self.muted:
+            return
         if self.tray_icon is not None and sys.platform.startswith("win"):
             try:
                 self.tray_icon.notify(message, title)

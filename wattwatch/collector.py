@@ -90,6 +90,9 @@ class Collector:
         self._month_db: dict = {}
         self._low_cpu_since: float | None = None
         self.idle_since: float | None = None
+        self.last_idle: dict | None = None     # most recent finished idle stretch
+        self._idle_wh = 0.0
+        self._idle_secs = 0.0
         self.listeners: list = []              # callables run every sample (e.g. tray refresh)
 
     # ------------------------------------------------------------------ lifecycle
@@ -199,9 +202,17 @@ class Collector:
         sample = self.model.sample(user_idle_s=idle_s)
         threshold = float(self.settings.get("idle_threshold_min", 15)) * 60
         is_idle = idle_s >= threshold
-        if is_idle and self.idle_since is None:
-            self.idle_since = now - idle_s
-        elif not is_idle:
+        if is_idle:
+            if self.idle_since is None:
+                self.idle_since = now - idle_s
+                self._idle_wh = self._idle_secs = 0.0
+            self._idle_wh += sample["wall_w"] * dt / 3600.0
+            self._idle_secs += dt
+        elif self.idle_since is not None:
+            # idle stretch just ended - remember it for the "welcome back" banner
+            self.last_idle = {"start": self.idle_since, "end": now, "minutes": (now - self.idle_since) / 60,
+                              "avg_w": self._idle_wh * 3600 / self._idle_secs if self._idle_secs else 0.0,
+                              "wh": self._idle_wh}
             self.idle_since = None
         rate, rate_name = rate_at(self.settings, now)
         minute = int(now // 60 * 60)

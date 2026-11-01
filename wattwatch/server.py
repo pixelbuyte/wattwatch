@@ -4,15 +4,19 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import __version__
+from . import __version__, achievements, autostart, power, reports
 from .app import WattWatch
+from .config import validate_settings
+from .facts import build_facts
 from .sensors.model import COMPONENT_NAMES
+from .sensors.smartplug import read_plug
 
 log = logging.getLogger(__name__)
 STATIC = Path(__file__).parent / "static"
@@ -62,8 +66,11 @@ def live_payload(ww: WattWatch) -> dict:
         "cost_per_hour": s["cost_per_hour"],
         "currency": settings.get("currency", "$"),
         "peak_w": round(ww.model.peak_wall(), 1),
+        "raw_w": round(s["raw_wall_w"], 2),
         "idle": {"seconds": round(s["idle_s"]), "method": s["idle_method"], "is_idle": s["is_idle"],
-                 "threshold_s": int(settings.get("idle_threshold_min", 15)) * 60},
+                 "threshold_s": int(settings.get("idle_threshold_min", 15)) * 60,
+                 "since": ww.collector.idle_since, "last": ww.collector.last_idle,
+                 "sleep_w": float(settings.get("sleep_watts", 2.0))},
         "today": {
             "kwh": today.get("wh", 0) / 1000.0,
             "cost": today.get("cost", 0),
@@ -157,6 +164,120 @@ def create_app(ww: WattWatch) -> FastAPI:
             },
             "data_dir": str(ww.data_dir),
         }
+
+    # ------------------------------------------------------------------ history & analytics
+    @app.get("/api/history")
+    async def history(range: str = "24h"):  # noqa: A002 - query param name
+        return await asyncio.to_thread(ww.analytics.history, range)
+
+    @app.get("/api/heatmap")
+    async def heatmap(days: int = 7):
+        return await asyncio.to_thread(ww.analytics.heatmap, days)
+
+    @app.get("/api/breakdown")
+    async def breakdown(range: str = "today"):  # noqa: A002
+        return await asyncio.to_thread(ww.analytics.breakdown, range)
+
+    @app.get("/api/daily")
+    async def daily(days: int = 14):
+        return {"days": await asyncio.to_thread(ww.analytics.daily, max(1, min(days, 120)))}
+
+    @app.get("/api/summary")
+    async def summary():
+        return await asyncio.to_thread(ww.analytics.summary)
+
+    @app.get("/api/facts")
+    async def facts():
+        sm = await asyncio.to_thread(ww.analytics.summary)
+        return {"facts": build_facts(sm, ww.collector.latest)}
+
+    @app.get("/api/achievements")
+    async def get_achievements():
+        def run():
+            sm = ww.analytics.summary()
+            return {"achievements": achievements.evaluate(ww, sm), "streaks": sm["streaks"]}
+        return await asyncio.to_thread(run)
+
+    @app.get("/api/events")
+    async def events(since: int = 0):
+        if since <= 0:
+            recent = ww.db.recent_events(1)
+            return {"events": [], "last_id": recent[0]["id"] if recent else 0}
+        evs = ww.db.events_since(since)
+        return {"events": evs, "last_id": evs[-1]["id"] if evs else since}
+
+    # ------------------------------------------------------------------ calibration & smart plug
+    @app.get("/api/calibration")
+    async def calibration():
+        rows = ww.db.query("SELECT * FROM calibration ORDER BY id DESC LIMIT 60")
+        c = ww.model.calibration
+        return {"points": [dict(r) for r in rows], "a": c.a, "b": c.b, "active": c.active}
+
+    @app.post("/api/calibrate")
+    async def calibrate(request: Request):
+        body = await request.json()
+        try:
+            measured = float(body.get("measured_w"))
+        except (TypeError, ValueError):
+            raise HTTPException(400, "measured_w must be a number") from None
+        if not 0.5 <= measured <= 5000:
+            raise HTTPException(400, "That reading looks off - enter the watts shown on your meter.")
+        try:
+            point = ww.add_calibration(measured)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from None
+        ww.analytics._cache.clear()
+        return {"ok": True, "point": point, "a": ww.model.calibration.a, "b": ww.model.calibration.b}
+
+    @app.delete("/api/calibration")
+    async def clear_calibration():
+        ww.clear_calibration()
+        return {"ok": True}
+
+    @app.post("/api/smartplug/test")
+    async def smartplug_test(request: Request):
+        body = await request.json()
+        cfg = validate_settings({"smartplug": body}, ww.settings)["smartplug"]
+        try:
+            watts = await asyncio.to_thread(read_plug, cfg)
+            return {"ok": True, "watts": watts}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)[:300]}
+
+    # ------------------------------------------------------------------ power actions
+    @app.post("/api/power/plan")
+    async def power_plan(request: Request):
+        body = await request.json()
+        res = await asyncio.to_thread(power.apply_power_plan, body.get("sleep_min", 30), body.get("display_min", 10))
+        if res["ok"]:
+            ww.db.add_event("plan", "Power plan applied", res["message"])
+        return res
+
+    @app.post("/api/power/sleep")
+    async def power_sleep():
+        return await asyncio.to_thread(power.sleep_now)
+
+    @app.get("/api/autostart")
+    async def get_autostart():
+        try:
+            return {"enabled": autostart.is_enabled()}
+        except Exception as exc:
+            return {"enabled": False, "error": str(exc)}
+
+    # ------------------------------------------------------------------ reports
+    @app.get("/api/report/weekly")
+    async def report_weekly():
+        return await asyncio.to_thread(reports.weekly, ww)
+
+    @app.get("/report/weekly", response_class=HTMLResponse)
+    async def report_weekly_html():
+        return HTMLResponse(await asyncio.to_thread(reports.weekly_html, ww))
+
+    @app.get("/api/export.csv")
+    async def export(granularity: str = "hour", days: int = 30):
+        text = await asyncio.to_thread(reports.export_csv, ww, granularity, days)
+        name = f"wattwatch-{granularity}-{datetime.now():%Y%m%d}.csv"
+        return Response(text, media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
 

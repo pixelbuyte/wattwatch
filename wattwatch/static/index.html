@@ -14,9 +14,34 @@
     <span class="pill" id="sourcePill" title="How the number is produced"><span class="dot"></span><span id="sourceText">Estimating…</span></span>
     <span class="pill rate" id="ratePill">—</span>
     <div class="spacer"></div>
+    <a class="btn" href="/report/weekly" target="_blank" rel="noopener" title="Weekly report">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5m0 14h16M8 15l3-4 3 2 5-6"/></svg><span class="lbl">Weekly report</span></a>
+    <div class="menu-wrap">
+      <button class="btn" id="exportBtn" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg><span class="lbl">Export CSV</span></button>
+      <div class="menu hidden" id="exportMenu" role="menu">
+        <a role="menuitem" href="/api/export.csv?granularity=day&days=365">Daily totals · last year</a>
+        <a role="menuitem" href="/api/export.csv?granularity=hour&days=30">Hourly · last 30 days</a>
+        <a role="menuitem" href="/api/export.csv?granularity=minute&days=7">Per minute · last 7 days</a>
+      </div>
+    </div>
+    <button class="btn icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
   </header>
 
   <main>
+    <!-- idle detector -->
+    <section class="idle-banner hidden" id="idleBanner" aria-live="polite">
+      <div class="idle-ico">💤</div>
+      <div class="idle-text"><b id="idleTitle">Your PC is idle</b><span id="idleMsg"></span></div>
+      <div class="idle-actions">
+        <button class="btn primary small" data-action="sleep">Sleep now</button>
+        <button class="btn small" data-action="plan">Apply power plan</button>
+        <button class="btn small ghost" data-action="dismiss" aria-label="Dismiss">✕</button>
+      </div>
+    </section>
+
     <div class="grid hero">
       <section class="card orb-card" aria-label="Live power">
         <h2 style="align-self:stretch">Live power draw <span class="tag faint" id="updated">connecting…</span></h2>
@@ -41,23 +66,232 @@
           <div class="odo-foot">
             <span>Right now <b id="costHour">—</b>/hour</span>
             <span>Rate <b id="rateNow">—</b></span>
+            <span>Energy <b id="kwhTodayInline">—</b> kWh</span>
           </div>
         </section>
         <div class="kpis">
-          <div class="card kpi cyan"><div class="label">Energy today</div><div class="value" id="kwhToday">—</div><div class="sub">kilowatt-hours</div></div>
-          <div class="card kpi lime"><div class="label">CO₂ today</div><div class="value" id="co2Today">—</div><div class="sub" id="co2Sub">grid average</div></div>
+          <div class="card kpi cyan"><div class="label">This month</div><div class="value" id="kMonth">—</div><div class="sub" id="kMonthSub">&nbsp;</div>
+            <div class="budget-bar" id="budgetBar" title="Projected month vs budget"><i></i><em></em></div></div>
+          <div class="card kpi violet"><div class="label">Projected year</div><div class="value" id="kYear">—</div><div class="sub" id="kYearSub">&nbsp;</div></div>
+          <div class="card kpi lime"><div class="label">CO₂ today</div><div class="value" id="co2Today">—</div><div class="sub" id="co2Sub">&nbsp;</div></div>
+          <div class="card kpi amber"><div class="label">Wasted today</div><div class="value" id="kWaste">—</div><div class="sub" id="kWasteSub">&nbsp;</div></div>
         </div>
       </div>
     </div>
 
+    <div class="grid row-2">
+      <section class="card chart-card">
+        <h2>Power over time
+          <span class="legend-inline"><i style="background:#22f0ff"></i>Total <i style="background:#22f0ff99"></i>CPU <i style="background:#ff3df299"></i>GPU</span>
+          <span class="seg" id="chartRange">
+            <button data-r="live" class="on">5 min</button><button data-r="1h">1 h</button><button data-r="24h">24 h</button><button data-r="7d">7 d</button><button data-r="30d">30 d</button>
+          </span>
+        </h2>
+        <div class="chart-wrap"><canvas id="lineChart"></canvas><div class="chart-tip hidden" id="chartTip"></div></div>
+      </section>
+      <section class="card">
+        <h2>Where the watts go
+          <span class="seg" id="donutRange"><button data-r="live" class="on">Live</button><button data-r="today">Today</button><button data-r="7d">7 d</button></span>
+        </h2>
+        <div class="donut-layout">
+          <div class="donut-wrap"><canvas id="donut"></canvas><div class="donut-center" id="donutCenter"></div></div>
+          <ul class="legend" id="donutLegend"></ul>
+        </div>
+      </section>
+    </div>
+
+    <div class="grid row-2">
+      <section class="card">
+        <h2>24-hour heatmap <span class="tag faint">average watts per hour</span>
+          <span class="seg" id="heatRange"><button data-d="7" class="on">7 d</button><button data-d="14">14 d</button><button data-d="30">30 d</button></span>
+        </h2>
+        <div class="heatmap" id="heatmap"></div>
+        <div class="hm-scale"><span>low</span><i></i><span>high</span><span class="hm-asleep-key"><b></b> asleep</span></div>
+      </section>
+      <section class="card score-card">
+        <h2>Efficiency score <span class="tag faint" id="scorePts"></span></h2>
+        <div class="score-top">
+          <div class="grade-ring">
+            <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="track"/><circle cx="60" cy="60" r="52" class="bar" id="gradeArc"/></svg>
+            <div class="grade" id="grade">?</div>
+          </div>
+          <ul class="score-parts" id="scoreParts"></ul>
+        </div>
+      </section>
+    </div>
+
+    <div class="grid row-3">
+      <section class="card">
+        <h2>Wasted energy <span class="seg" id="wasteRange"><button data-r="today" class="on">Today</button><button data-r="month">Month</button><button data-r="all">All</button></span></h2>
+        <div class="waste-bar" id="wasteBar"><i class="useful"></i><i class="idle"></i><i class="loss"></i></div>
+        <div class="waste-legend"><span><i class="useful"></i>Useful</span><span><i class="idle"></i>Idle (could've slept)</span><span><i class="loss"></i>PSU heat</span></div>
+        <div class="waste-rows" id="wasteRows"></div>
+      </section>
+      <section class="card">
+        <h2>If it never sleeps <span class="tag faint">per year</span></h2>
+        <div class="proj" id="projection"></div>
+      </section>
+      <section class="card facts-card">
+        <h2>Did you know? <span class="facts-nav"><button class="btn small" id="factPrev" aria-label="Previous fact">‹</button><button class="btn small" id="factNext" aria-label="Next fact">›</button></span></h2>
+        <div class="fact" id="fact"><div class="fact-icon">⚡</div><p>Crunching your numbers…</p></div>
+        <div class="fact-dots" id="factDots"></div>
+      </section>
+    </div>
+
+    <div class="grid row-2">
+      <section class="card">
+        <h2>Tips to improve your score</h2>
+        <ul class="tips" id="tips"></ul>
+      </section>
+      <section class="card">
+        <h2>Streaks</h2>
+        <div class="streaks" id="streaks"></div>
+        <div class="nights" id="nights" aria-label="Last 14 nights"></div>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:20px">
+      <h2>Achievements <span class="tag faint" id="achCount"></span></h2>
+      <div class="badges" id="badges"></div>
+    </section>
+
     <section class="card honest" style="margin-top:20px">
       <span class="ico">⚠️</span>
       <div><b>These are estimates.</b> Software can't see your wall socket — WattWatch models each component from
-        load and real sensors where they exist. For true numbers, calibrate with a plug-in power meter (e.g. a Kill-A-Watt) or connect a smart plug.</div>
+        load, reads real sensors where they exist (<span id="sensorList">…</span>) and applies a power-supply efficiency curve.
+        For true numbers, <a href="#" data-open-settings="calibration">calibrate with a plug-in power meter</a> (e.g. a Kill-A-Watt)
+        or <a href="#" data-open-settings="plug">connect a smart plug</a>.</div>
     </section>
 
-    <footer>WattWatch v{{WW_VERSION}} · all data stays on this computer</footer>
+    <footer>WattWatch v{{WW_VERSION}} · free &amp; open source · all data stays on this computer</footer>
   </main>
+
+  <!-- settings drawer -->
+  <div class="scrim hidden" id="scrim"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Settings">
+    <div class="drawer-head">
+      <h3>Settings</h3>
+      <button class="btn icon-btn" id="drawerClose" aria-label="Close settings">✕</button>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="money" class="on">Money</button><button data-tab="hardware">Hardware</button>
+      <button data-tab="calibration">Calibrate</button><button data-tab="plug">Smart plug</button><button data-tab="system">System</button>
+    </nav>
+    <form class="drawer-body" id="settingsForm" autocomplete="off">
+      <!-- MONEY -->
+      <div class="tab" data-tab="money">
+        <div class="field-row">
+          <label>Currency <input name="currency" maxlength="4" style="width:70px"></label>
+          <label>Electricity price <span class="hint">per kWh</span><input name="rate_per_kwh" type="number" step="0.001" min="0"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="tou_enabled"> Time-of-use pricing</label>
+        <div id="touEditor" class="tou"></div>
+        <button type="button" class="btn small" id="touAdd">+ Add period</button>
+        <p class="hint">Periods can cross midnight (e.g. 23:00–07:00). Outside every period the flat price applies.</p>
+        <hr>
+        <div class="field-row">
+          <label>Monthly budget <input name="monthly_budget" type="number" step="0.5" min="0"></label>
+          <label class="check" style="align-self:end"><input type="checkbox" name="budget_alerts"> Alert me</label>
+        </div>
+        <label>Grid carbon intensity <span class="hint">g CO₂ per kWh</span>
+          <div class="field-row"><input name="co2_g_per_kwh" type="number" step="1" min="0">
+          <select id="co2Preset"><option value="">Presets (approx.)…</option><option value="480">World average ~480</option>
+            <option value="370">United States ~370</option><option value="250">European Union ~250</option>
+            <option value="130">United Kingdom ~130</option><option value="40">France ~40</option><option value="110">Canada ~110</option>
+            <option value="500">Australia ~500</option><option value="700">India ~700</option><option value="20">Mostly hydro/nuclear ~20</option></select></div>
+        </label>
+      </div>
+      <!-- HARDWARE -->
+      <div class="tab hidden" data-tab="hardware">
+        <div class="hw-info" id="hwInfo"></div>
+        <p class="hint">Leave a value at 0 to use the detected / automatic value.</p>
+        <div class="field-row">
+          <label>CPU TDP override <span class="hint">W</span><input name="cpu_tdp_override" type="number" min="0"></label>
+          <label>PSU / charger size <span class="hint">W</span><input name="psu_watts" type="number" min="0"></label>
+        </div>
+        <label>PSU efficiency rating
+          <select name="psu_tier"><option value="auto">Auto</option><option value="white">80 PLUS (White)</option><option value="bronze">80 PLUS Bronze</option>
+            <option value="silver">80 PLUS Silver</option><option value="gold">80 PLUS Gold</option><option value="platinum">80 PLUS Platinum</option>
+            <option value="titanium">80 PLUS Titanium</option><option value="adapter">External adapter / laptop brick</option></select></label>
+        <div class="field-row">
+          <label>GPU idle <span class="hint">W, if no sensor</span><input name="gpu_idle_watts" type="number" min="0"></label>
+          <label>GPU max <span class="hint">W</span><input name="gpu_max_watts" type="number" min="0"></label>
+        </div>
+        <div class="field-row">
+          <label>Fans <span class="hint">count</span><input name="fan_count" type="number" min="0" max="30"></label>
+          <label>Peripherals on the same plug <span class="hint">W</span><input name="extra_watts" type="number" min="0"></label>
+        </div>
+        <div class="field-row">
+          <label>Sleep draw <span class="hint">W</span><input name="sleep_watts" type="number" step="0.1" min="0"></label>
+          <label>Off (plugged in) draw <span class="hint">W</span><input name="off_watts" type="number" step="0.1" min="0"></label>
+        </div>
+        <label>LibreHardwareMonitor URL <span class="hint">Windows, optional — real CPU/GPU watts</span>
+          <input name="lhm_url" placeholder="http://localhost:8085/data.json"></label>
+      </div>
+      <!-- CALIBRATION -->
+      <div class="tab hidden" data-tab="calibration">
+        <p>Software can only estimate. A plug-in power meter tells the truth — give WattWatch a reading or two and it will fit its model to your machine.</p>
+        <ol class="steps">
+          <li>Plug the PC (and anything else you want counted) into the meter.</li>
+          <li>Wait ~10 seconds for the meter to settle, then type its watts below.</li>
+          <li>Best results: one reading at idle, one under heavy load (a game or stress test).</li>
+        </ol>
+        <div class="calib-live"><span>Model right now</span><b id="calRaw">—</b><span>Shown on dashboard</span><b id="calShown">—</b></div>
+        <div class="field-row">
+          <label>Meter reading <span class="hint">W</span><input id="calInput" type="number" step="0.1" min="0" placeholder="e.g. 87.5"></label>
+          <button type="button" class="btn primary" id="calSave" style="align-self:end">Save reading</button>
+        </div>
+        <div class="calib-fit" id="calFit"></div>
+        <table class="calib-table" id="calTable"></table>
+        <button type="button" class="btn small danger" id="calReset">Reset calibration</button>
+      </div>
+      <!-- SMART PLUG -->
+      <div class="tab hidden" data-tab="plug">
+        <p>A metering smart plug gives <b>true wall measurements</b>, read directly over your local network. While connected, WattWatch also keeps calibrating its model, so it stays accurate if you unplug it later.</p>
+        <label>Plug type
+          <select name="sp_type"><option value="none">None</option><option value="shelly">Shelly (Gen1, Plus / Gen2+)</option>
+            <option value="tasmota">Tasmota (with energy monitoring)</option><option value="kasa">TP-Link Kasa (HS110, KP115, HS300…)</option></select></label>
+        <label>IP address / host <input name="sp_host" placeholder="192.168.1.50"></label>
+        <div class="field-row">
+          <label>Username <span class="hint">if set</span><input name="sp_username" autocomplete="off"></label>
+          <label>Password <input name="sp_password" type="password" autocomplete="new-password"></label>
+        </div>
+        <label>Channel / outlet index <input name="sp_index" type="number" min="0" max="8"></label>
+        <label class="check"><input type="checkbox" name="smartplug_auto_calibrate"> Auto-calibrate the model from the plug</label>
+        <div class="field-row"><button type="button" class="btn" id="plugTest">Test connection</button><span id="plugResult" class="hint"></span></div>
+        <p class="hint">Kasa devices on newer firmware need <code>pip install python-kasa</code>. Shelly Gen2+ uses the <code>/rpc</code> API; Gen1 uses <code>/status</code>.</p>
+      </div>
+      <!-- SYSTEM -->
+      <div class="tab hidden" data-tab="system">
+        <div class="field-row">
+          <label>Idle after <span class="hint">minutes without input</span><input name="idle_threshold_min" type="number" min="1" max="240"></label>
+          <label class="check" style="align-self:end"><input type="checkbox" name="idle_notify"> Notify when idle</label>
+        </div>
+        <div class="field-row">
+          <label>Night starts <input name="night_start" type="time"></label>
+          <label>Night length <span class="hint">hours</span><input name="night_hours" type="number" min="0" max="16" step="0.5"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="autostart"> Start WattWatch when I log in</label>
+        <p class="hint">WattWatch can only count what it sees while running — autostart keeps the totals honest.</p>
+        <hr>
+        <div class="field-row"><button type="button" class="btn" id="planBtn">Apply power plan…</button><button type="button" class="btn" id="sleepBtn">Sleep now</button></div>
+        <div class="sys-info" id="sysInfo"></div>
+      </div>
+    </form>
+    <div class="drawer-foot">
+      <span class="hint" id="saveState"></span>
+      <button class="btn primary" id="saveBtn">Save settings</button>
+    </div>
+  </aside>
+
+  <!-- confirm dialog -->
+  <div class="modal hidden" id="modal" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h3 id="modalTitle"></h3>
+      <div id="modalBody"></div>
+      <div class="modal-actions"><button class="btn" id="modalCancel">Cancel</button><button class="btn primary" id="modalOk">OK</button></div>
+    </div>
+  </div>
 
   <div class="toasts" id="toasts" aria-live="polite"></div>
   <script type="module" src="/static/js/app.js"></script>

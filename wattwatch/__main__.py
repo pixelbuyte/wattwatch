@@ -63,7 +63,9 @@ def main(argv: list[str] | None = None) -> int:
     from .app import WattWatch
     from .server import create_app
 
-    ww = WattWatch(db_path=db_path)
+    ww = WattWatch(db_path=db_path, start=False)
+    ww.notifier.muted = args.demo
+    ww.collector.start()
     app = create_app(ww)
     config = uvicorn.Config(app, host="127.0.0.1", port=args.port, log_level="warning", access_log=False)
     server = uvicorn.Server(config)

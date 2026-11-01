@@ -8,6 +8,8 @@ import threading
 import time
 from pathlib import Path
 
+from .alerts import Watchers
+from .analytics import Analytics
 from .collector import Collector
 from .config import data_dir, validate_settings
 from .db import Database
@@ -36,17 +38,31 @@ class WattWatch:
         self.reload_calibration()
         self.notifier = Notifier()
         self.collector = Collector(self.db, self.model, self.settings)
+        self.analytics = Analytics(self)
+        self.watchers = Watchers(self)
+        self.watchers.install()
+        self.collector.hooks.append(self._plug_autocalibrate)
         self._lock = threading.RLock()
+        self._last_plug_point = 0.0
         if start:
             self.collector.start()
 
     # ------------------------------------------------------------------ settings
     def update_settings(self, incoming: dict) -> dict:
         with self._lock:
+            before = self.settings.get("autostart")
             self.settings = validate_settings(incoming, self.settings)
+            if "autostart" in (incoming or {}) and self.settings["autostart"] != before:
+                try:
+                    from . import autostart
+                    self.settings["autostart"] = autostart.set_enabled(self.settings["autostart"])
+                except Exception as exc:
+                    log.warning("autostart change failed: %s", exc)
+                    self.settings["autostart"] = before
             self.db.save_settings(self.settings)
             self.collector.update_settings(self.settings)
             self.plug.configure(self.settings.get("smartplug", {}))
+            self.analytics._cache.clear()
         return self.settings
 
     # ------------------------------------------------------------------ calibration
@@ -68,8 +84,29 @@ class WattWatch:
         self.reload_calibration()
         return {"raw_w": raw, "measured_w": measured_w}
 
-    def _raw_from_point(self, p: dict) -> float:
+    @staticmethod
+    def _raw_from_point(p: dict) -> float:
         return p.get("raw", p["w"])
+
+    def _plug_autocalibrate(self, _collector):
+        """While a smart plug is connected, keep teaching the model so it stays accurate without it."""
+        if not self.settings.get("smartplug_auto_calibrate", True):
+            return
+        if time.time() - self._last_plug_point < 600:
+            return
+        recent = self.collector.history(30)
+        plug_w = self.plug.read()
+        if plug_w is None or len(recent) < 20:
+            return
+        ws = [p["raw"] for p in recent]
+        if max(ws) - min(ws) > 0.25 * (sum(ws) / len(ws)):
+            return  # load is jumping around - wait for a steadier moment
+        self._last_plug_point = time.time()
+        self.db.execute("INSERT INTO calibration(ts, raw_w, measured_w, source) VALUES(?,?,?,?)",
+                        (int(time.time()), sum(ws) / len(ws), plug_w, "plug"))
+        self.db.execute("DELETE FROM calibration WHERE source='plug' AND id NOT IN "
+                        "(SELECT id FROM calibration WHERE source='plug' ORDER BY id DESC LIMIT 30)")
+        self.reload_calibration()
 
     def clear_calibration(self):
         self.db.execute("DELETE FROM calibration")
