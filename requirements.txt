@@ -1,0 +1,7 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+psutil>=5.9
+py-cpuinfo>=9.0
+nvidia-ml-py>=12.535   # provides the `pynvml` module (NVIDIA power readings)
+pystray>=0.19          # system tray icon
+Pillow>=10.0           # tray icon rendering

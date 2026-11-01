@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="ww-token" content="{{WW_TOKEN}}">
+  <title>WattWatch</title>
+  <link rel="icon" href="/static/img/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="/static/img/icon.svg" alt=""><span>Watt<b>Watch</b></span></div>
+    <span class="pill" id="sourcePill" title="How the number is produced"><span class="dot"></span><span id="sourceText">Estimating…</span></span>
+    <span class="pill rate" id="ratePill">—</span>
+    <div class="spacer"></div>
+  </header>
+
+  <main>
+    <div class="grid hero">
+      <section class="card orb-card" aria-label="Live power">
+        <h2 style="align-self:stretch">Live power draw <span class="tag faint" id="updated">connecting…</span></h2>
+        <div class="orb-wrap">
+          <canvas id="orb" aria-hidden="true"></canvas>
+          <div class="orb-readout">
+            <div class="watts"><span id="watts">—</span><small>W</small></div>
+            <div class="watts-sub" id="wattsSub">at the wall</div>
+          </div>
+        </div>
+        <div class="orb-stats">
+          <span class="pill">CPU <b id="cpuUtil">—</b></span>
+          <span class="pill">PSU efficiency <b id="psuEff">—</b></span>
+          <span class="pill">Heat loss <b id="lossW">—</b></span>
+        </div>
+      </section>
+
+      <div class="money">
+        <section class="card odo-card" aria-label="Money spent today">
+          <h2 class="odo-label">Spent today <span class="tag faint" id="todayDate"></span></h2>
+          <div id="odometer"></div>
+          <div class="odo-foot">
+            <span>Right now <b id="costHour">—</b>/hour</span>
+            <span>Rate <b id="rateNow">—</b></span>
+          </div>
+        </section>
+        <div class="kpis">
+          <div class="card kpi cyan"><div class="label">Energy today</div><div class="value" id="kwhToday">—</div><div class="sub">kilowatt-hours</div></div>
+          <div class="card kpi lime"><div class="label">CO₂ today</div><div class="value" id="co2Today">—</div><div class="sub" id="co2Sub">grid average</div></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="card honest" style="margin-top:20px">
+      <span class="ico">⚠️</span>
+      <div><b>These are estimates.</b> Software can't see your wall socket — WattWatch models each component from
+        load and real sensors where they exist. For true numbers, calibrate with a plug-in power meter (e.g. a Kill-A-Watt) or connect a smart plug.</div>
+    </section>
+
+    <footer>WattWatch v{{WW_VERSION}} · all data stays on this computer</footer>
+  </main>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
