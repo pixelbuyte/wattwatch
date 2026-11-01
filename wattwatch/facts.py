@@ -75,7 +75,7 @@ def build_facts(sm: dict, live: dict | None) -> list[dict]:
         lift_m = use * 3.6e6 / (1500 * 9.81)
         add("🏗️", f"Same energy could lift a 1.5-tonne car {_n(lift_m)} metres straight up.", lift_m, kind="physics")
     if w_now:
-        add("🧍", f"Right now your PC gives off as much heat as {_n(w_now / HUMAN_REST_W)} resting {'person' if w_now < 150 else 'people'}.", w_now / HUMAN_REST_W, kind="live")
+        add("🧍", f"Right now your PC gives off as much heat as {_n(w_now / HUMAN_REST_W)} resting {'person' if abs(w_now / HUMAN_REST_W - 1) < 0.05 else 'people'}.", w_now / HUMAN_REST_W, kind="live")
         bulbs = w_now / (LED_BULB_KW * 1000)
         add("✨", f"Right now it draws as much as {_n(bulbs)} LED bulbs glowing at once.", bulbs, kind="live")
     if year_kwh > 0:

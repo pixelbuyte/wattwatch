@@ -35,7 +35,7 @@ def guess_tdp(brand: str, is_laptop: bool, cores: int) -> int:
     for pattern, tdp in KNOWN_TDP.items():
         if re.search(pattern, b, re.I):
             return tdp
-    m = re.search(r"(i[3579]-\d{4,5}|Ultra \d \d{3})([A-Z]{0,3})\b", b)
+    m = re.search(r"(i[3579]-\d{4,5}|Ultra \d \d{3})([A-Z]{0,2}\d?)\b", b)
     if m:
         suffix = m.group(2).upper()
         table = {"KS": 150, "K": 125, "KF": 125, "F": 65, "": 65, "T": 35, "HX": 55, "H": 45,
