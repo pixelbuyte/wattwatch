@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<!--
+    THIS IS A TEMPLATE THAT SHOULD BE USED EVERY TIME AND MODIFIED.
+    WHAT TO KEEP:
+    ✓ Overall structure (header, sidebar, main content)
+    ✓ Anthropic branding (colors, fonts, layout)
+    ✓ Seed navigation section (always include this)
+    ✓ Self-contained artifact (everything inline)
+
+    WHAT TO CREATIVELY EDIT:
+    ✗ The p5.js algorithm (implement YOUR vision)
+    ✗ The parameters (define what YOUR art needs)
+    ✗ The UI controls (match YOUR parameters)
+
+    Let your philosophy guide the implementation.
+    The world is your oyster - be creative!
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WattWatch Currents</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* Anthropic Brand Colors */
+        :root {
+            --anthropic-dark: #141413;
+            --anthropic-light: #faf9f5;
+            --anthropic-mid-gray: #b0aea5;
+            --anthropic-light-gray: #e8e6dc;
+            --anthropic-orange: #d97757;
+            --anthropic-blue: #6a9bcc;
+            --anthropic-green: #788c5d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--anthropic-light) 0%, #f5f3ee 100%);
+            min-height: 100vh;
+            color: var(--anthropic-dark);
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(20, 20, 19, 0.1);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar h1 {
+            font-family: 'Lora', serif;
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--anthropic-dark);
+            margin-bottom: 8px;
+        }
+
+        .sidebar .subtitle {
+            color: var(--anthropic-mid-gray);
+            font-size: 14px;
+            margin-bottom: 32px;
+            line-height: 1.4;
+        }
+
+        /* Control Sections */
+        .control-section {
+            margin-bottom: 32px;
+        }
+
+        .control-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--anthropic-dark);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-section h3::before {
+            content: '•';
+            color: var(--anthropic-orange);
+            font-weight: bold;
+        }
+
+        /* Seed Controls */
+        .seed-input {
+            width: 100%;
+            background: var(--anthropic-light);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-bottom: 12px;
+            border: 1px solid var(--anthropic-light-gray);
+            text-align: center;
+        }
+
+        .seed-input:focus {
+            outline: none;
+            border-color: var(--anthropic-orange);
+            box-shadow: 0 0 0 2px rgba(217, 119, 87, 0.1);
+            background: white;
+        }
+
+        .seed-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .regen-button {
+            margin-bottom: 0;
+        }
+
+        /* Parameter Controls */
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--anthropic-dark);
+            margin-bottom: 8px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider-container input[type="range"] {
+            flex: 1;
+            height: 4px;
+            background: var(--anthropic-light-gray);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--anthropic-orange);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            background: #c86641;
+        }
+
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: var(--anthropic-orange);
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .value-display {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--anthropic-mid-gray);
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* Color Pickers */
+        .color-group {
+            margin-bottom: 16px;
+        }
+
+        .color-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--anthropic-mid-gray);
+            margin-bottom: 4px;
+        }
+
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-picker-container input[type="color"] {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+
+        .color-value {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--anthropic-mid-gray);
+        }
+
+        /* Buttons */
+        .button {
+            background: var(--anthropic-orange);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .button:hover {
+            background: #c86641;
+            transform: translateY(-1px);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button.secondary {
+            background: var(--anthropic-blue);
+        }
+
+        .button.secondary:hover {
+            background: #5a8bb8;
+        }
+
+        .button.tertiary {
+            background: var(--anthropic-green);
+        }
+
+        .button.tertiary:hover {
+            background: #6b7b52;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .button-row .button {
+            flex: 1;
+        }
+
+        /* Canvas Area */
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        #canvas-container {
+            width: 100%;
+            max-width: 1000px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(20, 20, 19, 0.1);
+            background: #05060f;
+        }
+
+        #canvas-container canvas {
+            display: block;
+            width: 100% !important;
+            height: auto !important;
+        }
+
+        .status-line {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--anthropic-mid-gray);
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .select-input {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--anthropic-light-gray);
+            background: var(--anthropic-light);
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            color: var(--anthropic-dark);
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--anthropic-mid-gray);
+            min-height: 300px;
+        }
+
+        /* Responsive - Stack on mobile */
+        @media (max-width: 600px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .canvas-area {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Control Sidebar -->
+        <div class="sidebar">
+            <!-- Headers (CUSTOMIZE THIS FOR YOUR ART) -->
+            <h1>WattWatch Currents</h1>
+            <div class="subtitle">Conductive Bloom &mdash; charge braids out of a wall socket, alternates at mains frequency and slowly fills a glowing orb. Some of it never arrives.</div>
+
+            <!-- Seed Section (ALWAYS KEEP THIS) -->
+            <div class="control-section">
+                <h3>Seed</h3>
+                <input type="number" id="seed-input" class="seed-input" value="12345" onchange="updateSeed()">
+                <div class="seed-controls">
+                    <button class="button secondary" onclick="previousSeed()">← Prev</button>
+                    <button class="button secondary" onclick="nextSeed()">Next →</button>
+                </div>
+                <button class="button tertiary regen-button" onclick="randomSeedAndUpdate()">↻ Random</button>
+            </div>
+
+            <!-- Parameters Section (CUSTOMIZE THIS FOR YOUR ART) -->
+            <div class="control-section">
+                <h3>Parameters</h3>
+                <div class="control-group">
+                    <label>Load</label>
+                    <div class="slider-container">
+                        <input type="range" id="load" min="0.05" max="1" step="0.01" value="0.42" oninput="updateParam('load', this.value)">
+                        <span class="value-display" id="load-value">42%</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Mains Frequency</label>
+                    <div class="slider-container">
+                        <input type="range" id="frequency" min="40" max="70" step="1" value="60" oninput="updateParam('frequency', this.value)">
+                        <span class="value-display" id="frequency-value">60 Hz</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Turbulence</label>
+                    <div class="slider-container">
+                        <input type="range" id="turbulence" min="0" max="2" step="0.05" value="0.9" oninput="updateParam('turbulence', this.value)">
+                        <span class="value-display" id="turbulence-value">0.9</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Field Scale</label>
+                    <div class="slider-container">
+                        <input type="range" id="noiseScale" min="0.0015" max="0.008" step="0.0005" value="0.0035" oninput="updateParam('noiseScale', this.value)">
+                        <span class="value-display" id="noiseScale-value">0.0035</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Orbital Swirl</label>
+                    <div class="slider-container">
+                        <input type="range" id="swirl" min="0" max="2" step="0.05" value="1" oninput="updateParam('swirl', this.value)">
+                        <span class="value-display" id="swirl-value">1</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Heat Loss</label>
+                    <div class="slider-container">
+                        <input type="range" id="heatLoss" min="0" max="3" step="0.1" value="1" oninput="updateParam('heatLoss', this.value)">
+                        <span class="value-display" id="heatLoss-value">1</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Trail Glow</label>
+                    <div class="slider-container">
+                        <input type="range" id="glow" min="0.01" max="0.12" step="0.005" value="0.03" oninput="updateParam('glow', this.value)">
+                        <span class="value-display" id="glow-value">0.03</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Supply Duration</label>
+                    <div class="slider-container">
+                        <input type="range" id="duration" min="400" max="2400" step="100" value="1400" oninput="updateParam('duration', this.value)">
+                        <span class="value-display" id="duration-value">1400 f</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colors Section (OPTIONAL - CUSTOMIZE OR REMOVE) -->
+            <div class="control-section">
+                <h3>Colors</h3>
+                <div class="color-group">
+                    <label>Current</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color1" value="#22f0ff" onchange="updateColor('color1', this.value)">
+                        <span class="color-value" id="color1-value">#22f0ff</span>
+                    </div>
+                </div>
+                <div class="color-group">
+                    <label>Charge</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color2" value="#aa5aff" onchange="updateColor('color2', this.value)">
+                        <span class="color-value" id="color2-value">#aa5aff</span>
+                    </div>
+                </div>
+                <div class="color-group">
+                    <label>Heat</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color3" value="#ff3df2" onchange="updateColor('color3', this.value)">
+                        <span class="color-value" id="color3-value">#ff3df2</span>
+                    </div>
+                </div>
+                <div class="color-group">
+                    <label>Spark</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color4" value="#3dffa0" onchange="updateColor('color4', this.value)">
+                        <span class="color-value" id="color4-value">#3dffa0</span>
+                    </div>
+                </div>
+                <div class="color-group">
+                    <label>Void</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color5" value="#05060f" onchange="updateColor('color5', this.value)">
+                        <span class="color-value" id="color5-value">#05060f</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions Section (ALWAYS KEEP THIS) -->
+            <div class="control-section">
+                <h3>Actions</h3>
+                <div class="button-row">
+                    <button class="button" onclick="initializeSystem()">↻ Regenerate</button>
+                    <button class="button" onclick="resetParameters()">Reset</button>
+                </div>
+                <div class="button-row" style="margin-top: 8px;">
+                    <button class="button secondary" onclick="downloadPNG()">⤓ Download PNG</button>
+                </div>
+                <div class="status-line" id="status">&nbsp;</div>
+            </div>
+        </div>
+
+        <!-- Main Canvas Area -->
+        <div class="canvas-area">
+            <div id="canvas-container">
+                <div class="loading">Initializing generative art...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════════════
+        // GENERATIVE ART PARAMETERS - CONDUCTIVE BLOOM
+        // ═══════════════════════════════════════════════════════════════════════
+
+        let params = {
+            seed: 12345,
+            load: 0.42,          // drives emission through the concave load curve
+            frequency: 60,       // mains Hz: sets the stitch length of every strand
+            turbulence: 0.9,     // curl-field strength
+            noiseScale: 0.0035,  // curl-field feature size
+            swirl: 1.0,          // orbital swirl near the orb
+            heatLoss: 1.0,       // multiplier on the efficiency-curve loss fraction
+            glow: 0.03,          // additive alpha per trail segment
+            duration: 1400,      // frames of supply before the source is exhausted
+            colorPalette: ['#22f0ff', '#aa5aff', '#ff3df2', '#3dffa0', '#05060f']
+        };
+
+        let defaultParams = {...params, colorPalette: [...params.colorPalette]}; // Store defaults for reset
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // P5.JS GENERATIVE ART ALGORITHM
+        // ═══════════════════════════════════════════════════════════════════════
+
+        const W = 1200, H = 1200;
+        const FS = 8;                 // curl field cell size (px)
+        const SUBSTEPS = 2;           // integration steps per frame
+        const MAX_EMIT = 14;          // particles per frame at full load
+
+        let trails, bgLayer;
+        let particles = [];
+        let fieldX, fieldY, fCols, fRows;
+        let orb, socket, prongGap, swirlDir;
+        let energy = 0, tick = 0, emitAcc = 0, running = false;
+        let pal = {};
+        let eff = 0.85, lossFraction = 0.15, emitRate = 0;
+        let pendingInit = null;
+        let lanes = [], exposure = 1;
+
+        // Loosely the 80 PLUS Gold requirement, extended below 10 % load where real units sag.
+        const EFF_CURVE = [[0, 0.50], [0.02, 0.61], [0.05, 0.74], [0.10, 0.83], [0.20, 0.87], [0.50, 0.90], [1.0, 0.87]];
+        function efficiencyAt(u) {
+            for (let i = 0; i < EFF_CURVE.length - 1; i++) {
+                const [x0, y0] = EFF_CURVE[i], [x1, y1] = EFF_CURVE[i + 1];
+                if (u <= x1) return y0 + (y1 - y0) * (u - x0) / (x1 - x0);
+            }
+            return EFF_CURVE[EFF_CURVE.length - 1][1];
+        }
+        // Concave utilisation-to-power curve: a light load already draws a real stream.
+        const loadCurve = (u) => 2 * u - Math.pow(u, 1.4);
+
+        function hexToRgb(hex) {
+            const v = parseInt(hex.slice(1), 16);
+            return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+        }
+        const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+
+        function setup() {
+            let canvas = createCanvas(W, H);
+            canvas.parent('canvas-container');
+            pixelDensity(1);
+            trails = createGraphics(W, H);
+            trails.pixelDensity(1);
+            bgLayer = createGraphics(W, H);
+            bgLayer.pixelDensity(1);
+
+            initializeSystem();
+
+            // Remove loading message
+            document.querySelector('.loading').style.display = 'none';
+        }
+
+        function initializeSystem() {
+            // Seed the randomness for reproducibility
+            randomSeed(params.seed);
+            noiseSeed(params.seed);
+
+            const c = params.colorPalette.map(hexToRgb);
+            pal = { current: c[0], charge: c[1], heat: c[2], spark: c[3], void: c[4] };
+
+            // Composition: socket low, orb high, both nudged by the seed.
+            orb = { x: W * 0.5 + random(-80, 80), y: H * 0.33 + random(-45, 45), r: 56 + random(0, 16) };
+            socket = { x: W * 0.5 + random(-190, 190), y: H * 0.86 + random(-20, 15) };
+            prongGap = 30 + random(0, 10);
+            swirlDir = random() < 0.5 ? -1 : 1;
+
+            eff = efficiencyAt(params.load);
+            lossFraction = constrain((1 - eff) * params.heatLoss, 0, 0.9);
+            emitRate = MAX_EMIT * loadCurve(params.load);
+            // Exposure normalisation: heavier load = more light, but sub-linearly, so it never burns out.
+            exposure = Math.min(1.8, Math.sqrt(7 / Math.max(emitRate, 0.4)));
+
+            // Lanes: each is a family of particles that reads the field through its own offset and is
+            // pushed sideways early on, so charge leaves the socket as distinct braids that fan out and reconverge.
+            const laneCount = 9 + Math.floor(random(0, 6));
+            lanes = [];
+            for (let i = 0; i < laneCount; i++) {
+                const t = laneCount === 1 ? 0 : i / (laneCount - 1) * 2 - 1;
+                lanes.push({
+                    bias: t * random(0.7, 1.35) + random(-0.15, 0.15),
+                    ox: random(-700, 700), oy: random(-700, 700),
+                    width: random(5, 22),
+                    weight: random(0.4, 1.6),
+                });
+            }
+
+            buildField();
+            buildBackground();
+
+            trails.clear();
+            trails.background(0, 0);
+            particles = [];
+            energy = 0;
+            tick = 0;
+            emitAcc = 0;
+            running = true;
+            loop();
+        }
+
+        // Divergence-free turbulence: the curl of a two-octave noise potential.
+        function buildField() {
+            fCols = Math.ceil(W / FS) + 2;
+            fRows = Math.ceil(H / FS) + 2;
+            const psi = new Float32Array(fCols * fRows);
+            const ns = params.noiseScale;
+            for (let j = 0; j < fRows; j++) {
+                for (let i = 0; i < fCols; i++) {
+                    const x = i * FS, y = j * FS;
+                    psi[j * fCols + i] = noise(x * ns, y * ns) + 0.45 * noise(x * ns * 2.3 + 91.7, y * ns * 2.3 - 13.1);
+                }
+            }
+            fieldX = new Float32Array(fCols * fRows);
+            fieldY = new Float32Array(fCols * fRows);
+            let maxMag = 1e-6;
+            for (let j = 1; j < fRows - 1; j++) {
+                for (let i = 1; i < fCols - 1; i++) {
+                    const k = j * fCols + i;
+                    const dpdy = psi[k + fCols] - psi[k - fCols];
+                    const dpdx = psi[k + 1] - psi[k - 1];
+                    fieldX[k] = dpdy;
+                    fieldY[k] = -dpdx;
+                    maxMag = Math.max(maxMag, Math.hypot(dpdy, dpdx));
+                }
+            }
+            for (let k = 0; k < fieldX.length; k++) {
+                fieldX[k] /= maxMag;
+                fieldY[k] /= maxMag;
+            }
+        }
+
+        function sampleField(x, y) {
+            const gx = constrain(x / FS, 1, fCols - 2.001), gy = constrain(y / FS, 1, fRows - 2.001);
+            const i = Math.floor(gx), j = Math.floor(gy), fx = gx - i, fy = gy - j;
+            const k = j * fCols + i;
+            const ax = fieldX[k] + (fieldX[k + 1] - fieldX[k]) * fx;
+            const bx = fieldX[k + fCols] + (fieldX[k + fCols + 1] - fieldX[k + fCols]) * fx;
+            const ay = fieldY[k] + (fieldY[k + 1] - fieldY[k]) * fx;
+            const by = fieldY[k + fCols] + (fieldY[k + fCols + 1] - fieldY[k + fCols]) * fx;
+            return [ax + (bx - ax) * fy, ay + (by - ay) * fy];
+        }
+
+        const wrapX = (x) => ((x % W) + W) % W;
+        const wrapY = (y) => ((y % H) + H) % H;
+
+        function buildBackground() {
+            const g = bgLayer.drawingContext;
+            const v = pal.void;
+            g.globalCompositeOperation = 'source-over';
+            g.fillStyle = `rgb(${v[0]},${v[1]},${v[2]})`;
+            g.fillRect(0, 0, W, H);
+            // a faint lift of light around where the orb will bloom
+            let grad = g.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, W * 0.75);
+            grad.addColorStop(0, `rgba(${pal.charge[0]},${pal.charge[1]},${pal.charge[2]},0.07)`);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            g.fillStyle = grad;
+            g.fillRect(0, 0, W, H);
+            // vignette
+            grad = g.createRadialGradient(W / 2, H / 2, W * 0.32, W / 2, H / 2, W * 0.78);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.65)');
+            g.fillStyle = grad;
+            g.fillRect(0, 0, W, H);
+            // sparse dot lattice, like a circuit board seen through fog
+            g.fillStyle = `rgba(${pal.current[0]},${pal.current[1]},${pal.current[2]},0.045)`;
+            for (let y = 24; y < H; y += 48) for (let x = 24; x < W; x += 48) g.fillRect(x, y, 1.2, 1.2);
+            // the socket faceplate, barely there
+            const c = pal.current;
+            g.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},0.10)`;
+            g.lineWidth = 1.2;
+            roundRect(g, socket.x - 64, socket.y - 70, 128, 150, 22);
+            g.stroke();
+            g.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},0.28)`;
+            for (const s of [-1, 1]) {
+                roundRect(g, socket.x + s * prongGap / 2 - 4, socket.y - 18, 8, 36, 3);
+                g.stroke();
+            }
+            g.beginPath();
+            g.arc(socket.x, socket.y + 46, 8, Math.PI, 0);
+            g.lineTo(socket.x + 8, socket.y + 54);
+            g.lineTo(socket.x - 8, socket.y + 54);
+            g.closePath();
+            g.stroke();
+        }
+
+        function roundRect(g, x, y, w, h, r) {
+            g.beginPath();
+            g.moveTo(x + r, y);
+            g.arcTo(x + w, y, x + w, y + h, r);
+            g.arcTo(x + w, y + h, x, y + h, r);
+            g.arcTo(x, y + h, x, y, r);
+            g.arcTo(x, y, x + w, y, r);
+            g.closePath();
+        }
+
+        function pickLane() {
+            let total = 0;
+            for (const l of lanes) total += l.weight;
+            let r = random(total);
+            for (const l of lanes) { if ((r -= l.weight) <= 0) return l; }
+            return lanes[lanes.length - 1];
+        }
+
+        function spawn() {
+            const side = random() < 0.5 ? -1 : 1;
+            const lane = pickLane();
+            const x = socket.x + side * prongGap / 2 + random(-2.5, 2.5);
+            const y = socket.y + random(-16, 16);
+            const d0 = Math.hypot(orb.x - x, orb.y - y);
+            const lossy = random() < lossFraction;
+            particles.push({
+                x, y,                                  // base (guiding-centre) position
+                rx: x, ry: y,                          // rendered position incl. AC displacement
+                vx: lane.bias * 0.6 + random(-0.2, 0.2), vy: -1,
+                lane,
+                jx: random(-1, 1) * lane.width, jy: random(-1, 1) * lane.width,
+                age: 0,
+                phase: random(TWO_PI),
+                amp: random(2.2, 4.4),
+                speed: random(0.85, 1.18),
+                d0,
+                lossy,
+                decoupleAt: lossy ? random(0.12, 0.7) : 9,
+                heat: false,
+                heatLife: 0,
+                heatMax: random(120, 230),
+                drift: random(-0.4, 0.4),
+                dead: false,
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // PARTICLE DYNAMICS
+        // ═══════════════════════════════════════════════════════════════════════
+
+        const BINS = 7;      // colour bins for current, batched into single paths
+        const HEAT_BINS = 4;
+        let segs = [], heatSegs = [], sparks = [];
+
+        function stepParticle(p) {
+            const dx = orb.x - p.x, dy = orb.y - p.y;
+            const d = Math.max(1e-3, Math.hypot(dx, dy));
+            const tx = dx / d, ty = dy / d;
+            const prevRx = p.rx, prevRy = p.ry;
+            p.age += 1;
+
+            if (!p.heat) {
+                const progress = constrain(1 - d / p.d0, 0, 1);
+                const near = constrain(1 - (d - orb.r) / (orb.r * 4.5), 0, 1);
+                const ln = p.lane;
+                const [cx, cy] = sampleField(wrapX(p.x + ln.ox + p.jx), wrapY(p.y + ln.oy + p.jy));
+                const early = Math.pow(1 - progress, 1.5);
+                const turb = params.turbulence * (0.25 + 1.45 * early);
+                const pull = 0.22 + 1.35 * Math.pow(progress, 1.5) + 1.6 * near * near;
+                // swirl peaks halfway in and vanishes at the surface, so charge spirals in instead of orbiting forever
+                const sw = params.swirl * 1.4 * near * (1 - near) * 4 * swirlDir;
+                const fan = ln.bias * 1.5 * early;
+                let ax = tx * pull + cx * turb - ty * (sw + fan);
+                let ay = ty * pull + cy * turb + tx * (sw + fan);
+                p.vx += (ax - p.vx) * 0.16;
+                p.vy += (ay - p.vy) * 0.16;
+                const vm = Math.hypot(p.vx, p.vy) || 1;
+                const s = 2.1 * p.speed * (0.8 + 0.45 * params.load) * (1 + 1.1 * near);
+                p.vx = p.vx / vm * s;
+                p.vy = p.vy / vm * s;
+                p.x += p.vx;
+                p.y += p.vy;
+                // Alternation: a lateral sine around the guiding centre. ~1080/f steps per cycle,
+                // so 50 Hz weaves a longer stitch than 60 Hz. It smooths out as charge nears the orb.
+                p.phase += TWO_PI * params.frequency / 1080;
+                const a = p.amp * Math.pow(1 - progress, 1.6) * Math.sin(p.phase);
+                const nx = -p.vy / s, ny = p.vx / s;
+                p.rx = p.x + nx * a;
+                p.ry = p.y + ny * a;
+
+                if (d < orb.r * 0.82 || p.age > 2400) {
+                    p.dead = true;
+                    energy += 1;
+                    if (random() < 0.14) {
+                        const ang = Math.atan2(-ty, -tx) + random(-0.7, 0.7);
+                        const len = random(5, 18);
+                        const sx = orb.x - tx * orb.r * 0.95, sy = orb.y - ty * orb.r * 0.95;
+                        sparks.push([sx, sy, sx + Math.cos(ang) * len, sy + Math.sin(ang) * len]);
+                    }
+                    return;
+                }
+                if (p.lossy && progress > p.decoupleAt) {
+                    p.heat = true;  // decouples: from here on it is waste heat
+                }
+                const bin = Math.min(BINS - 1, Math.floor(Math.pow(progress, 0.8) * BINS));
+                segs[bin].push(prevRx, prevRy, p.rx, p.ry);
+            } else {
+                // Heat: no longer attracted, buoyant, folded by the same turbulence, fading out.
+                p.heatLife += 1;
+                const [cx, cy] = sampleField(wrapX(p.x * 1.7 + 300), wrapY(p.y * 1.7 + 200));
+                const ax = cx * 1.4 - tx * 0.25 + p.drift * 0.3;
+                const ay = cy * 1.4 - ty * 0.25 - 0.9;
+                p.vx += (ax - p.vx) * 0.08;
+                p.vy += (ay - p.vy) * 0.08;
+                const s = 1.25 * (1 - 0.5 * p.heatLife / p.heatMax);
+                const vm = Math.hypot(p.vx, p.vy) || 1;
+                p.x += p.vx / vm * s;
+                p.y += p.vy / vm * s;
+                p.rx = p.x;
+                p.ry = p.y;
+                const life = p.heatLife / p.heatMax;
+                if (life >= 1) { p.dead = true; return; }
+                const bin = Math.min(HEAT_BINS - 1, Math.floor(life * HEAT_BINS));
+                heatSegs[bin].push(prevRx, prevRy, p.rx, p.ry);
+            }
+            if (p.x < -40 || p.x > W + 40 || p.y < -40 || p.y > H + 40) p.dead = true;
+        }
+
+        function strokeBatch(g, arr, rgb, alpha, width) {
+            if (!arr.length) return;
+            g.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+            g.lineWidth = width;
+            g.beginPath();
+            for (let i = 0; i < arr.length; i += 4) {
+                g.moveTo(arr[i], arr[i + 1]);
+                g.lineTo(arr[i + 2], arr[i + 3]);
+            }
+            g.stroke();
+        }
+
+        function draw() {
+            if (!running) return;
+            const g = trails.drawingContext;
+            g.globalCompositeOperation = 'lighter';
+            g.lineCap = 'round';
+
+            for (let sub = 0; sub < SUBSTEPS; sub++) {
+                if (tick < params.duration) {
+                    emitAcc += emitRate / SUBSTEPS;
+                    while (emitAcc >= 1) { spawn(); emitAcc -= 1; }
+                }
+                tick += 1 / SUBSTEPS;
+                segs = Array.from({ length: BINS }, () => []);
+                heatSegs = Array.from({ length: HEAT_BINS }, () => []);
+                sparks = [];
+                for (const p of particles) stepParticle(p);
+                particles = particles.filter((p) => !p.dead);
+
+                // charge (violet) -> current (cyan) -> near-white as it reaches the orb
+                for (let b = 0; b < BINS; b++) {
+                    const t = b / (BINS - 1);
+                    const rgb = t < 0.55 ? mix(pal.charge, pal.current, t / 0.55)
+                                         : mix(pal.current, [235, 255, 255], (t - 0.55) / 0.45 * 0.6);
+                    strokeBatch(g, segs[b], rgb, params.glow * exposure * (0.7 + 0.6 * t), 0.85);
+                }
+                for (let b = 0; b < HEAT_BINS; b++) {
+                    const fade = 1 - b / HEAT_BINS;
+                    const rgb = mix(pal.heat, [255, 150, 60], b / HEAT_BINS * 0.5);
+                    strokeBatch(g, heatSegs[b], rgb, params.glow * exposure * 1.2 * fade, 1.1);
+                }
+                if (sparks.length) {
+                    const flat = sparks.flat();
+                    strokeBatch(g, flat, pal.spark, Math.min(1, params.glow * 9), 1.1);
+                }
+            }
+
+            // compose: void + accumulated light + the orb
+            image(bgLayer, 0, 0);
+            blendMode(ADD);
+            image(trails, 0, 0);
+            blendMode(BLEND);
+            drawOrb();
+
+            const done = tick >= params.duration && particles.length === 0;
+            updateStatus(done);
+            if (done) {
+                running = false;
+                noLoop();
+            }
+        }
+
+        // The orb has no light of its own: brightness is a saturating integral of delivered charge.
+        function drawOrb() {
+            const g = drawingContext;
+            const lit = 1 - Math.exp(-energy / 2600);
+            const pulse = 0.5 + 0.5 * Math.sin(tick * TWO_PI * (params.frequency / 60) / 95);
+            const R = orb.r * (1 + 0.025 * pulse * lit);
+            const c = pal.current, v = pal.charge, sp = pal.spark;
+            g.save();
+            g.globalCompositeOperation = 'lighter';
+            let grad = g.createRadialGradient(orb.x, orb.y, R * 0.4, orb.x, orb.y, R * (2.6 + 2.2 * lit));
+            grad.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},${0.05 + 0.32 * lit})`);
+            grad.addColorStop(0.4, `rgba(${v[0]},${v[1]},${v[2]},${0.03 + 0.12 * lit})`);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            g.fillStyle = grad;
+            g.beginPath();
+            g.arc(orb.x, orb.y, R * (2.6 + 2.2 * lit), 0, TWO_PI);
+            g.fill();
+            g.restore();
+
+            g.save();
+            grad = g.createRadialGradient(orb.x - R * 0.32, orb.y - R * 0.38, R * 0.05, orb.x, orb.y, R);
+            grad.addColorStop(0, `rgba(255,255,255,${0.10 + 0.88 * lit})`);
+            grad.addColorStop(0.22, `rgba(${mix(c, [255, 255, 255], 0.35).join(',')},${0.08 + 0.85 * lit})`);
+            grad.addColorStop(0.68, `rgba(${c[0]},${c[1]},${c[2]},${0.06 + 0.6 * lit})`);
+            grad.addColorStop(1, `rgba(${Math.round(v[0] * 0.5)},${Math.round(v[1] * 0.5)},${Math.round(v[2] * 0.5)},${0.25 + 0.6 * lit})`);
+            g.fillStyle = grad;
+            g.beginPath();
+            g.arc(orb.x, orb.y, R, 0, TWO_PI);
+            g.fill();
+            // glass rim and a small specular arc
+            g.lineWidth = 1.4;
+            g.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${0.25 + 0.5 * lit})`;
+            g.stroke();
+            g.beginPath();
+            g.arc(orb.x, orb.y, R * 0.93, Math.PI * 1.08, Math.PI * 1.52);
+            g.strokeStyle = `rgba(255,255,255,${0.12 + 0.35 * lit})`;
+            g.lineWidth = 2;
+            g.stroke();
+            // a thin orbit ring that tightens as the orb fills
+            g.beginPath();
+            g.ellipse(orb.x, orb.y, R * (1.9 - 0.4 * lit), R * (0.42 - 0.08 * lit), -0.35 * swirlDir, 0, TWO_PI);
+            g.strokeStyle = `rgba(${sp[0]},${sp[1]},${sp[2]},${0.05 + 0.18 * lit})`;
+            g.lineWidth = 1;
+            g.stroke();
+            g.restore();
+        }
+
+        function updateStatus(done) {
+            const el = document.getElementById('status');
+            if (!el) return;
+            const pct = Math.round(Math.min(1, tick / params.duration) * 100);
+            el.textContent = done
+                ? `complete · ${energy.toLocaleString()} quanta delivered · ${Math.round(eff * 100)}% efficient`
+                : `supply ${pct}% · ${particles.length.toLocaleString()} in flight · ${energy.toLocaleString()} delivered`;
+        }
+
+        function downloadPNG() {
+            saveCanvas(`wattwatch-currents-${params.seed}`, 'png');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // UI CONTROL HANDLERS
+        // ═══════════════════════════════════════════════════════════════════════
+
+        function formatParam(name, v) {
+            if (name === 'load') return `${Math.round(v * 100)}%`;
+            if (name === 'frequency') return `${v} Hz`;
+            if (name === 'duration') return `${v} f`;
+            return String(v);
+        }
+
+        function scheduleInit() {
+            clearTimeout(pendingInit);
+            pendingInit = setTimeout(initializeSystem, 120);
+        }
+
+        function updateParam(paramName, value) {
+            params[paramName] = Number(value);
+            document.getElementById(`${paramName}-value`).textContent = formatParam(paramName, params[paramName]);
+            scheduleInit();
+        }
+
+        function updateColor(colorId, value) {
+            const idx = Number(colorId.replace('color', '')) - 1;
+            params.colorPalette[idx] = value;
+            document.getElementById(`${colorId}-value`).textContent = value;
+            scheduleInit();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // SEED CONTROL FUNCTIONS - ALWAYS KEEP THESE
+        // ═══════════════════════════════════════════════════════════════════════
+
+        function updateSeedDisplay() {
+            document.getElementById('seed-input').value = params.seed;
+        }
+
+        function updateSeed() {
+            let input = document.getElementById('seed-input');
+            let newSeed = parseInt(input.value);
+            if (newSeed && newSeed > 0) {
+                params.seed = newSeed;
+                initializeSystem();
+            } else {
+                // Reset to current seed if invalid
+                updateSeedDisplay();
+            }
+        }
+
+        function previousSeed() {
+            params.seed = Math.max(1, params.seed - 1);
+            updateSeedDisplay();
+            initializeSystem();
+        }
+
+        function nextSeed() {
+            params.seed = params.seed + 1;
+            updateSeedDisplay();
+            initializeSystem();
+        }
+
+        function randomSeedAndUpdate() {
+            params.seed = Math.floor(Math.random() * 999999) + 1;
+            updateSeedDisplay();
+            initializeSystem();
+        }
+
+        function resetParameters() {
+            params = {...defaultParams, colorPalette: [...defaultParams.colorPalette]};
+
+            // Update UI elements
+            for (const name of ['load', 'frequency', 'turbulence', 'noiseScale', 'swirl', 'heatLoss', 'glow', 'duration']) {
+                document.getElementById(name).value = params[name];
+                document.getElementById(`${name}-value`).textContent = formatParam(name, params[name]);
+            }
+
+            // Reset colors
+            params.colorPalette.forEach((hex, i) => {
+                document.getElementById(`color${i + 1}`).value = hex;
+                document.getElementById(`color${i + 1}-value`).textContent = hex;
+            });
+
+            updateSeedDisplay();
+            initializeSystem();
+        }
+
+        // Initialize UI on load
+        window.addEventListener('load', function() {
+            updateSeedDisplay();
+        });
+    </script>
+</body>
+</html>
