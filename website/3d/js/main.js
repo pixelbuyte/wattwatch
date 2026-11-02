@@ -96,7 +96,13 @@ smoothP = scrollP;
 const mouse = { x: 0, y: 0, sx: 0, sy: 0 };
 addEventListener("pointermove", (e) => { mouse.x = e.clientX / innerWidth - 0.5; mouse.y = e.clientY / innerHeight - 0.5; });
 
-addEventListener("resize", () => world.resize(innerWidth, innerHeight));
+// portrait screens: lift the subject into the top half so the story text below never covers it
+function frameForAspect() {
+  if (innerWidth < innerHeight) world.camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.2, innerWidth, innerHeight);
+  else world.camera.clearViewOffset();
+}
+addEventListener("resize", () => { world.resize(innerWidth, innerHeight); frameForAspect(); });
+frameForAspect();
 
 // ---------------------------------------------------------------- HUD
 const RATE = 0.17;
@@ -119,7 +125,13 @@ function step(dt, draw) {
   posCurve.getPoint(u, world.camera.position);
   tgtCurve.getPoint(u, world.target);
   const i0 = Math.floor(Math.min(smoothP, N - 1e-6)), fr = smoothP - i0;
-  const fov = KEYS[i0].fov + (KEYS[Math.min(N, i0 + 1)].fov - KEYS[i0].fov) * fr;
+  let fov = KEYS[i0].fov + (KEYS[Math.min(N, i0 + 1)].fov - KEYS[i0].fov) * fr;
+  // portrait screens: widen the vertical FOV so the subject keeps roughly a square's worth of width
+  const aspect = innerWidth / innerHeight;
+  if (aspect < 1) {
+    const k = Math.min(1 / aspect, 2.2);
+    fov = (2 * Math.atan(Math.tan((fov * Math.PI) / 360) * k) * 180) / Math.PI;
+  }
   if (Math.abs(world.camera.fov - fov) > 0.01) { world.camera.fov = fov; world.camera.updateProjectionMatrix(); }
   mouse.sx += (mouse.x - mouse.sx) * 0.05; mouse.sy += (mouse.y - mouse.sy) * 0.05;
   if (!reduced) {
