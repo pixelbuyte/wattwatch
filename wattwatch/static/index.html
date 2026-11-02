@@ -7,6 +7,9 @@
   <title>WattWatch</title>
   <link rel="icon" href="/static/img/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/app.css">
+  <script type="importmap">
+    { "imports": { "three": "/static/vendor/three/build/three.module.min.js", "three/addons/": "/static/vendor/three/addons/" } }
+  </script>
 </head>
 <body>
   <header class="topbar">
@@ -44,9 +47,11 @@
 
     <div class="grid hero">
       <section class="card orb-card" aria-label="Live power">
-        <h2 style="align-self:stretch">Live power draw <span class="tag faint" id="updated">connecting…</span></h2>
+        <h2 style="align-self:stretch">Live power draw <span class="tag faint" id="updated">connecting…</span>
+          <button type="button" class="orb-toggle" id="orbToggle" aria-pressed="true" title="Switch between the 3D and 2D orb">3D</button></h2>
         <div class="orb-wrap">
-          <canvas id="orb" aria-hidden="true"></canvas>
+          <canvas id="orb3d" class="hidden" aria-hidden="true"></canvas>
+          <canvas id="orb" class="hidden" aria-hidden="true"></canvas>
           <div class="orb-readout">
             <div class="watts"><span id="watts">—</span><small>W</small></div>
             <div class="watts-sub" id="wattsSub">at the wall</div>

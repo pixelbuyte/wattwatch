@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WattWatch 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Fly through a PC that never sleeps: follow every watt from the wall socket, through the cable and the components, into WattWatch's glowing power orb.">
+<link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+/* Layout concept: a fixed WebGL stage behind a column of full-height story beats; the camera flies
+   one keyframe per beat. Single dark world - the room is lit only by the machine. */
+:root {
+  --void: #03040a;
+  --ink: #eef1ff;
+  --muted: #a3abd0;
+  --faint: #69719a;
+  --volt: #22f0ff;
+  --plasma: #ff3df2;
+  --money: #3dffa0;
+  --heat: #ffb020;
+  --line: rgba(140, 160, 255, 0.18);
+  --display: "Unbounded", "Arial Black", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", -apple-system, Roboto, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--void); }
+body { margin: 0; background: var(--void); color: var(--ink); font-family: var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--void); }
+#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 0; }
+.scrim { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(3,4,10,0.78) 0%, rgba(3,4,10,0.35) 34%, rgba(3,4,10,0) 58%); }
+
+/* ---------- loader */
+#loader { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: var(--void); transition: opacity 1.2s ease, visibility 1.2s; }
+body.ready #loader { opacity: 0; visibility: hidden; }
+#loader .pulse { width: 64px; height: 64px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff, var(--volt) 35%, #3c8cff 70%, transparent 72%);
+  box-shadow: 0 0 60px var(--volt); animation: beat 1.1s ease-in-out infinite; margin: 0 auto 22px; }
+#loader p { font-family: var(--mono); font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); text-align: center; padding-inline: 16px; }
+@keyframes beat { 50% { transform: scale(0.82); box-shadow: 0 0 30px var(--volt); } }
+
+/* ---------- nav */
+.nav { position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; z-index: 20; display: flex; align-items: center; gap: 18px;
+  padding-block: 16px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+.logo { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; color: var(--ink); text-decoration: none; font-size: 17px; }
+.logo img { width: 28px; height: 28px; filter: drop-shadow(0 0 8px rgba(34,240,255,.7)); }
+.logo b { color: var(--volt); font-weight: 700; }
+.nav .sp { flex: 1; }
+.nav a.link { color: var(--muted); text-decoration: none; font-size: 14.5px; }
+.nav a.link:hover { color: var(--ink); }
+.cta { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 11px; font: 600 14.5px var(--body); color: #031016; text-decoration: none;
+  background: linear-gradient(135deg, var(--volt), #8af8ff); box-shadow: 0 0 26px rgba(34,240,255,.35); }
+
+/* ---------- story */
+main { position: relative; z-index: 2; }
+.sec { min-height: 100vh; display: flex; align-items: center; padding-block: 120px;
+  padding-left: max(28px, env(safe-area-inset-left, 0px)); padding-right: max(28px, env(safe-area-inset-right, 0px));
+  opacity: calc(0.15 + var(--vis, 1) * 0.85); }
+.beat { max-width: 520px; transform: translateY(calc((1 - var(--vis, 1)) * 30px)); position: relative; isolation: isolate; }
+.beat::before { content: ""; position: absolute; inset: -70px -90px; z-index: -1; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(3,4,10,0.78), rgba(3,4,10,0.45) 60%, rgba(3,4,10,0)); }
+.sec.right { justify-content: flex-end; }
+.sec.right .beat { text-align: right; }
+.kicker { font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--volt); }
+.kicker b { color: var(--faint); font-weight: 400; margin-right: 10px; }
+h1, h2 { font-family: var(--display); margin: 14px 0 16px; line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance; text-shadow: 0 4px 30px rgba(0,0,0,.8); }
+h1 { font-size: clamp(42px, 7vw, 92px); font-weight: 800; }
+h2 { font-size: clamp(32px, 4.6vw, 60px); font-weight: 700; }
+.hot { color: var(--volt); text-shadow: 0 0 34px rgba(34,240,255,.55); }
+.pink { color: var(--plasma); text-shadow: 0 0 34px rgba(255,61,242,.5); }
+.amber { color: var(--heat); text-shadow: 0 0 34px rgba(255,176,32,.45); }
+.lime { color: var(--money); text-shadow: 0 0 34px rgba(61,255,160,.45); }
+.beat p { font-size: 18px; line-height: 1.6; color: var(--muted); margin: 0; max-width: 46ch; text-shadow: 0 2px 16px rgba(0,0,0,.9); }
+.sec.right .beat p { margin-left: auto; }
+.scroll-hint { margin-top: 34px; display: inline-flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--faint); }
+.scroll-hint i { width: 22px; height: 36px; border-radius: 12px; border: 1.5px solid var(--faint); position: relative; }
+.scroll-hint i::after { content: ""; position: absolute; left: 50%; top: 7px; width: 3px; height: 7px; border-radius: 2px; background: var(--volt); transform: translateX(-50%); animation: wheel 1.6s infinite; }
+@keyframes wheel { 60% { transform: translate(-50%, 9px); opacity: 0; } }
+.stat-row { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 26px; }
+.sec.right .stat-row { justify-content: flex-end; }
+.stat b { display: block; font-family: var(--mono); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 13px; color: var(--faint); }
+.loads { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px; }
+.sec.right .loads { justify-content: flex-end; }
+.loads button, .hud-loads button {
+  font: 600 13.5px var(--body); padding: 9px 14px; border-radius: 10px; cursor: pointer; color: var(--muted);
+  background: rgba(10, 13, 32, 0.7); border: 1px solid var(--line); backdrop-filter: blur(8px); transition: all .2s;
+}
+.loads button:hover, .hud-loads button:hover { color: var(--ink); border-color: rgba(34,240,255,.5); }
+.loads button[aria-pressed=true], .hud-loads button[aria-pressed=true] { color: #031016; background: var(--volt); border-color: transparent; box-shadow: 0 0 22px rgba(34,240,255,.45); }
+.final .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+.ghost { display: inline-flex; padding: 10px 16px; border-radius: 11px; font: 600 14.5px var(--body); color: var(--ink); text-decoration: none; border: 1px solid var(--line); background: rgba(10,13,32,.6); }
+:focus-visible { outline: 2px solid var(--volt); outline-offset: 3px; }
+
+/* ---------- callouts pinned to 3D anchors */
+#callouts { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+.callout { position: absolute; left: 0; top: 0; display: flex; align-items: flex-start; gap: 8px; opacity: 0; transition: opacity .35s; will-change: transform; }
+.callout.on { opacity: 1; }
+.callout i { width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--volt); box-shadow: 0 0 0 4px rgba(34,240,255,.18), 0 0 14px var(--volt); flex: none; }
+.callout div { margin-top: -30px; margin-left: 18px; padding: 7px 11px; border-radius: 10px; background: rgba(6, 9, 24, 0.78); border: 1px solid rgba(34,240,255,.35);
+  backdrop-filter: blur(6px); white-space: nowrap; position: relative; }
+.callout div::before { content: ""; position: absolute; left: -18px; top: 26px; width: 18px; height: 1px; background: rgba(34,240,255,.6); transform: rotate(-35deg); transform-origin: right; }
+.callout span { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.callout b { font-family: var(--mono); font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.callout.psu i { background: var(--heat); box-shadow: 0 0 0 4px rgba(255,176,32,.2), 0 0 14px var(--heat); }
+.callout.psu div { border-color: rgba(255,176,32,.45); }
+.callout.plug i { background: var(--money); box-shadow: 0 0 0 4px rgba(61,255,160,.2), 0 0 14px var(--money); }
+.callout.plug div { border-color: rgba(61,255,160,.45); }
+
+/* ---------- HUD */
+.hud { position: fixed; z-index: 15; right: max(20px, env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  width: min(330px, calc(100vw - 40px)); padding: 14px 16px; border-radius: 16px; background: rgba(6, 9, 24, 0.72); border: 1px solid var(--line); backdrop-filter: blur(12px); }
+.hud-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.hud-top .w { font-family: var(--mono); font-weight: 700; font-size: 30px; font-variant-numeric: tabular-nums; }
+.hud-top .w small { font-size: 14px; color: var(--muted); margin-left: 3px; }
+.hud-top .c { font-family: var(--mono); font-size: 13px; color: var(--money); text-align: right; }
+.hud-bar { height: 4px; border-radius: 2px; background: rgba(140,160,255,.15); margin: 8px 0 6px; overflow: hidden; }
+.hud-bar i { display: block; height: 100%; width: 20%; border-radius: 2px; transition: background .3s; box-shadow: 0 0 10px currentColor; }
+.hud-sub { font-size: 12px; color: var(--faint); font-family: var(--mono); }
+.hud-loads { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.hud-loads button { padding: 6px 10px; font-size: 12.5px; }
+.hud .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+
+body.no-webgl #loader { opacity: 1; visibility: visible; }
+body.capture #loader { transition: none; }
+body.capture .callout { transition: none; }
+@media (max-width: 760px) {
+  .nav a.link { display: none; }
+  .scrim { background: linear-gradient(180deg, rgba(3,4,10,0.2) 0%, rgba(3,4,10,0.65) 55%, rgba(3,4,10,0.85) 100%); }
+  .sec { align-items: flex-end; padding-bottom: 210px; }
+  .sec.right { justify-content: flex-start; }
+  .sec.right .beat { text-align: left; }
+  .sec.right .beat p { margin-left: 0; }
+  .sec.right .stat-row, .sec.right .loads { justify-content: flex-start; }
+  .callout div { font-size: 90%; }
+  .hud { left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint i::after, #loader .pulse { animation: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="A 3D scene of a desk at night: a glass gaming PC with RGB fans, a wall socket with a smart plug, a glowing power cable and a floating plasma orb."></canvas>
+<div class="scrim" aria-hidden="true"></div>
+<div id="loader" role="status"><div><div class="pulse"></div><p>Powering up the scene</p></div></div>
+<div id="callouts" aria-hidden="true"></div>
+
+<header class="nav">
+  <a class="logo" href="../index.html"><img src="../assets/icon.svg" alt=""><span>Watt<b>Watch</b></span></a>
+  <span class="sp"></span>
+  <a class="link" href="../index.html#features">Features</a>
+  <a class="link" href="../index.html#install">Install</a>
+  <a class="cta" href="https://github.com/pixelbuyte/wattwatch" target="_blank" rel="noopener">Get it free</a>
+</header>
+
+<main>
+  <section class="sec">
+    <div class="beat">
+      <div class="kicker"><b>00</b>WattWatch · 3D</div>
+      <h1>Your PC <span class="hot">never</span> sleeps.</h1>
+      <p>Follow one watt from the wall socket, down the cable, through every component, into the orb that shows you what it costs.</p>
+      <div class="scroll-hint"><i></i>Scroll to follow the power</div>
+    </div>
+  </section>
+  <section class="sec right">
+    <div class="beat">
+      <div class="kicker"><b>01</b>The wall</div>
+      <h2>Every watt starts <span class="lime">at the socket.</span></h2>
+      <p>A metering smart plug — Shelly, Tasmota or Kasa — reads true wall power over your Wi-Fi. No plug? WattWatch estimates it, and tells you which one you're looking at.</p>
+    </div>
+  </section>
+  <section class="sec">
+    <div class="beat">
+      <div class="kicker"><b>02</b>The cable</div>
+      <h2>Then it flows <span class="hot">into the machine.</span></h2>
+      <p>Each pulse on the cable is energy you pay for. The pulses speed up as the load climbs. Try the load buttons in the corner.</p>
+    </div>
+  </section>
+  <section class="sec">
+    <div class="beat">
+      <div class="kicker"><b>03</b>Inside</div>
+      <h2>Every component, <span class="pink">every second.</span></h2>
+      <p>CPU from RAPL or powermetrics, GPU from NVML, and a model for memory, storage, fans and the board, sampled once a second.</p>
+    </div>
+  </section>
+  <section class="sec right">
+    <div class="beat">
+      <div class="kicker"><b>04</b>The power supply</div>
+      <h2>Some of it <span class="amber">never arrives.</span></h2>
+      <p>AC to DC conversion turns 10–28% of the energy into heat before it reaches a component. A big PSU idling at low load is at its worst. WattWatch shows you exactly how much.</p>
+    </div>
+  </section>
+  <section class="sec right">
+    <div class="beat">
+      <div class="kicker"><b>05</b>The orb</div>
+      <h2>This is what <span class="hot" id="orbW">72</span> watts looks like.</h2>
+      <p>The orb's colour, pulse and storm follow your real wattage. Push the load and watch the room react: fans spin up, pulses race, the plasma turns hot.</p>
+      <div class="loads" role="group" aria-label="Simulated load">
+        <button data-load="idle" aria-pressed="true">Idle · 72 W</button>
+        <button data-load="browse">Browsing · 118 W</button>
+        <button data-load="game">Gaming · 340 W</button>
+        <button data-load="render">Rendering · 420 W</button>
+      </div>
+    </div>
+  </section>
+  <section class="sec final">
+    <div class="beat">
+      <div class="kicker"><b>06</b>The bill</div>
+      <h2><span class="lime" id="orbYear">$107</span> a year, left on 24/7.</h2>
+      <p>At $0.17/kWh. WattWatch shows what you spend today, this month and per year, what's wasted, and how much sleeping at night would save. It's free, open source, and your data never leaves your machine.</p>
+      <div class="actions">
+        <a class="cta" href="https://github.com/pixelbuyte/wattwatch" target="_blank" rel="noopener">Get WattWatch</a>
+        <a class="ghost" href="../index.html">Back to the site</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<aside class="hud" aria-label="Simulated live reading">
+  <div class="hud-top">
+    <div class="w"><span id="hudW">72</span><small>W</small></div>
+    <div class="c"><span id="hudCost">$0.0122/h</span></div>
+  </div>
+  <div class="hud-bar"><i id="hudBar"></i></div>
+  <div class="hud-sub" id="hudYear">$107/yr if it never sleeps</div>
+  <div class="hud-loads" role="group" aria-label="Simulated load">
+    <button data-load="idle" aria-pressed="true">Idle</button><button data-load="browse">Browse</button><button data-load="game">Game</button><button data-load="render">Render</button>
+  </div>
+</aside>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

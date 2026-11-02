@@ -44,6 +44,7 @@ export class PowerOrb {
       canvas.addEventListener("pointerleave", () => (this.hoverTarget = 0));
     }
     this.hoverTarget = 0;
+    this.paused = false;
     this._loop = this._loop.bind(this);
     requestAnimationFrame(this._loop);
   }
@@ -81,6 +82,10 @@ export class PowerOrb {
   _loop(now) {
     const dt = Math.min(0.05, (now - this.last) / 1000);
     this.last = now;
+    if (this.paused || document.hidden) {
+      requestAnimationFrame(this._loop);
+      return;
+    }
     this.watts = lerp(this.watts, this.target, 1 - Math.pow(0.04, dt));
     this.hover = lerp(this.hover, this.hoverTarget, 1 - Math.pow(0.01, dt));
     const f = this.fraction;

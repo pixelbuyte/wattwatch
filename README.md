@@ -260,7 +260,7 @@ wattwatch/
   sensors/           hardware detection, RAPL/NVML/powermetrics/LHM readers,
                      PSU curves, idle detection, smart plugs, the power model
   static/            dashboard (vanilla JS + Canvas, no build step)
-website/             project website (static, deployable to GitHub Pages)
+website/             project website, 3D tour (website/3d), film, generative art (website/art)
 tests/               pytest suite
 ```
 
@@ -272,6 +272,19 @@ python -m pytest
 ```
 
 The dashboard is plain ES modules served by FastAPI, so edit `wattwatch/static/` and refresh.
+
+## 3D tour, film and generative art
+
+- **3D tour** (`website/3d/`): a scroll-driven Three.js scene built entirely in code, with no downloaded models.
+  - The set: a desk in a dark room, a tempered-glass PC with spinning RGB fans, an AIO cooler whose LCD shows live watts, RGB RAM, a GPU, and a PSU shroud that glows with waste heat.
+  - The power path: a wall socket with a metering smart plug, and a power cable carrying energy pulses up into a plasma orb.
+  - The camera flies one keyframe per story beat. Labels pinned to each component show live watts.
+  - Load presets (Idle / Browsing / Gaming / Rendering) make the whole room react: fans spin up, pulses race, the orb turns hot.
+  - Rendering: custom GLSL for the plasma, cable pulses and glass; UnrealBloom, ACES tone mapping, and film grain, vignette and chromatic aberration.
+  - Add `?capture` to the URL to render on demand (`window.__step(seconds)`) for screenshots.
+- **Film** (`website/3d/film.html`): a 29-second, 1920×1080 motion piece driven by a deterministic 30 fps timeline over the same scene, with kinetic typography. Each frame is rendered headlessly (`window.__renderFrame(i)`) and encoded with ffmpeg. The soundtrack is synthesized with ffmpeg as well: a 60 Hz mains hum, a pad, impacts on each cut and a riser.
+- **Generative art** (`website/art/`): *WattWatch Currents*, a seeded p5.js piece made with the algorithmic-art skill. Charge braids out of a wall socket at mains frequency into an orb. `philosophy.md` explains the system.
+- **In-app 3D orb**: the dashboard uses a WebGL plasma orb (three.js vendored under `wattwatch/static/vendor/`, so it works offline) and falls back to the 2D canvas orb without WebGL. Use the 3D/2D pill in the orb card to switch.
 
 ## Website
 

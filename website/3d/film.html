@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<title>WattWatch Film</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+/* A 1920x1080 stage rendered frame by frame (window.__renderFrame) for the WattWatch motion film. */
+:root { --volt: #22f0ff; --plasma: #ff3df2; --money: #3dffa0; --heat: #ffb020; --ink: #eef1ff; --muted: #a3abd0;
+  --display: "Unbounded", "Arial Black", sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace; --body: "IBM Plex Sans", sans-serif; color-scheme: dark; }
+html, body { margin: 0; background: #000; overflow: hidden; }
+#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+#gl { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+.layer { position: absolute; inset: 0; pointer-events: none; }
+.t { position: absolute; color: var(--ink); will-change: transform, opacity, clip-path; }
+.display { font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.02; text-shadow: 0 6px 40px rgba(0,0,0,.85); }
+.mono { font-family: var(--mono); }
+.kick { font-family: var(--mono); font-size: 24px; letter-spacing: .28em; text-transform: uppercase; color: var(--volt); }
+.hot { color: var(--volt); text-shadow: 0 0 40px rgba(34,240,255,.6); }
+.pink { color: var(--plasma); text-shadow: 0 0 40px rgba(255,61,242,.55); }
+.lime { color: var(--money); text-shadow: 0 0 40px rgba(61,255,160,.5); }
+.amber { color: var(--heat); text-shadow: 0 0 40px rgba(255,176,32,.5); }
+.line { display: block; overflow: hidden; padding-bottom: 0.08em; }
+.line > span { display: inline-block; will-change: transform; }
+.big-num { font-family: var(--mono); font-weight: 700; font-variant-numeric: tabular-nums; text-shadow: 0 0 40px rgba(0,0,0,.8); }
+.callout { position: absolute; left: 0; top: 0; display: flex; gap: 10px; will-change: transform, opacity; }
+.callout i { width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--volt); box-shadow: 0 0 0 6px rgba(34,240,255,.2), 0 0 20px var(--volt); }
+.callout div { margin: -44px 0 0 26px; padding: 10px 16px; border-radius: 14px; background: rgba(6,9,24,.82); border: 1.5px solid rgba(34,240,255,.45); white-space: nowrap; }
+.callout span { display: block; font-family: var(--mono); font-size: 15px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.callout b { font-family: var(--mono); font-size: 26px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.callout.psu i { background: var(--heat); box-shadow: 0 0 0 6px rgba(255,176,32,.2), 0 0 20px var(--heat); }
+.callout.psu div { border-color: rgba(255,176,32,.5); }
+.bar { position: absolute; left: 0; right: 0; height: 120px; background: #000; }
+#fade { position: absolute; inset: 0; background: #000; }
+#flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(160,250,255,.9), rgba(34,240,255,.0) 70%); mix-blend-mode: screen; opacity: 0; }
+#end { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+  background: radial-gradient(ellipse at 50% 45%, rgba(3,4,10,.55), rgba(3,4,10,.94) 70%); opacity: 0; }
+#end .logo { display: flex; align-items: center; gap: 26px; font-family: var(--display); font-weight: 800; font-size: 120px; letter-spacing: -0.02em; color: var(--ink); }
+#end .logo img { width: 130px; height: 130px; filter: drop-shadow(0 0 30px rgba(34,240,255,.8)); }
+#end .logo b { color: var(--volt); text-shadow: 0 0 50px rgba(34,240,255,.6); }
+#end p { margin: 0; font-family: var(--body); font-size: 34px; color: var(--muted); }
+#end .url { font-family: var(--mono); font-size: 28px; color: var(--money); letter-spacing: .04em; }
+.hud { position: absolute; right: 80px; bottom: 150px; width: 470px; padding: 22px 26px; border-radius: 22px; background: rgba(6,9,24,.72); border: 1.5px solid rgba(140,160,255,.22); }
+.hud .w { font-family: var(--mono); font-weight: 700; font-size: 64px; font-variant-numeric: tabular-nums; }
+.hud .w small { font-size: 26px; color: var(--muted); margin-left: 6px; }
+.hud .row { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 22px; color: var(--muted); margin-top: 6px; }
+.hud .row b { color: var(--money); font-weight: 600; }
+.hud .meter { height: 8px; border-radius: 4px; background: rgba(140,160,255,.15); margin: 12px 0 4px; overflow: hidden; }
+.hud .meter i { display: block; height: 100%; border-radius: 4px; }
+.hud .mode { font-family: var(--mono); font-size: 18px; letter-spacing: .2em; text-transform: uppercase; color: var(--volt); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="gl" width="1920" height="1080"></canvas>
+  <div class="layer" id="callouts"></div>
+  <div class="layer" id="texts">
+    <!-- shot A -->
+    <div class="t kick" id="aKick" style="left:140px; top:330px">WattWatch</div>
+    <div class="t display" id="aTitle" style="left:132px; top:380px; font-size:150px">
+      <span class="line"><span>Your PC</span></span><span class="line"><span class="hot">never</span></span><span class="line"><span>sleeps.</span></span>
+    </div>
+    <!-- shot B -->
+    <div class="t kick" id="bKick" style="left:150px; top:640px">01 · The wall</div>
+    <div class="t display" id="bTitle" style="left:140px; top:690px; font-size:96px">
+      <span class="line"><span>Every watt starts</span></span><span class="line"><span class="lime">at the socket.</span></span>
+    </div>
+    <!-- shot C -->
+    <div class="t kick" id="cKick" style="left:150px; top:640px">02 · The cable</div>
+    <div class="t display" id="cTitle" style="left:140px; top:690px; font-size:84px">
+      <span class="line"><span>Measured.</span></span><span class="line"><span class="hot">Modelled.</span></span><span class="line"><span class="pink">Calibrated.</span></span>
+    </div>
+    <!-- shot D -->
+    <div class="t kick" id="dKick" style="left:150px; top:660px">03 · Inside</div>
+    <div class="t display" id="dTitle" style="left:140px; top:710px; font-size:92px">
+      <span class="line"><span>Every component.</span></span><span class="line"><span class="pink">Every second.</span></span>
+    </div>
+    <!-- shot E -->
+    <div class="t display" id="eTitle" style="left:140px; top:720px; font-size:84px">
+      <span class="line"><span>Push it.</span></span><span class="line"><span id="eWord" class="amber">The orb feels it.</span></span>
+    </div>
+    <div class="t hud" id="eHud">
+      <div class="mode" id="eMode">Gaming</div>
+      <div class="w"><span id="eW">72</span><small>W</small></div>
+      <div class="meter"><i id="eMeter"></i></div>
+      <div class="row"><span>right now</span><b id="eCost">$0.012/h</b></div>
+      <div class="row"><span>if it never sleeps</span><b id="eYear">$107/yr</b></div>
+    </div>
+    <!-- shot F -->
+    <div class="t kick" id="fKick" style="left:150px; top:330px">04 · The bill</div>
+    <div class="t display" id="fTitle" style="left:140px; top:380px; font-size:120px">
+      <span class="line"><span><b class="lime" id="fYear" style="font-weight:800">$107</b> a year,</span></span><span class="line"><span>left on 24/7.</span></span>
+    </div>
+    <div class="t" id="fSub" style="left:146px; top:690px; font-family:var(--body); font-size:38px; color:var(--muted)">
+      Let it sleep at night and keep <b class="lime" id="fSave" style="font-weight:600">$35</b> of it.
+    </div>
+  </div>
+  <div class="bar" style="top:0"></div>
+  <div class="bar" style="bottom:0"></div>
+  <div id="flash"></div>
+  <div id="end">
+    <div class="logo"><img src="../assets/icon.svg" alt=""><span>Watt<b>Watch</b></span></div>
+    <p>See what your always-on PC really costs.</p>
+    <p>Free &amp; open source · Windows · macOS · Linux</p>
+    <div class="url">github.com/pixelbuyte/wattwatch</div>
+  </div>
+  <div id="fade"></div>
+</div>
+<script type="module" src="js/film.js"></script>
+</body>
+</html>

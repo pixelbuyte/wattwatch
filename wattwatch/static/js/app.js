@@ -18,7 +18,51 @@ const fmt = {
 };
 
 // ------------------------------------------------------------------ widgets
-const orb = new PowerOrb($("orb"));
+// Power orb: WebGL 3D by default, 2D canvas as the fallback (and a user choice, remembered)
+const ORB_KEY = "ww-orb-mode";
+const orbs = { "2d": null, "3d": null };
+let orbMode = "3d";
+let orbLast = [0, 300];
+try { orbMode = localStorage.getItem(ORB_KEY) === "2d" ? "2d" : "3d"; } catch { /* storage blocked */ }
+
+async function useOrb(mode) {
+  if (mode === "3d") {
+    try {
+      if (!orbs["3d"]) {
+        const { PowerOrb3D } = await import("./orb3d.js");
+        if (!PowerOrb3D.isSupported()) throw new Error("WebGL is not available");
+        orbs["3d"] = new PowerOrb3D($("orb3d"));
+      }
+    } catch (e) {
+      console.info("3D orb unavailable, using the 2D orb:", e.message);
+      mode = "2d";
+      $("orbToggle").disabled = true;
+      $("orbToggle").title = "3D orb needs WebGL";
+    }
+  }
+  if (mode === "2d" && !orbs["2d"]) orbs["2d"] = new PowerOrb($("orb"));
+  orbMode = mode;
+  for (const k of ["2d", "3d"]) {
+    if (orbs[k]) orbs[k].paused = k !== mode;
+  }
+  $("orb3d").classList.toggle("hidden", mode !== "3d");
+  $("orb").classList.toggle("hidden", mode !== "2d");
+  orbs[mode].set(...orbLast);
+  $("orbToggle").textContent = mode === "3d" ? "3D" : "2D";
+  $("orbToggle").setAttribute("aria-pressed", String(mode === "3d"));
+}
+const orb = {
+  set(watts, peak) {
+    orbLast = [watts, peak];
+    orbs[orbMode]?.set(watts, peak);
+  },
+};
+$("orbToggle").addEventListener("click", () => {
+  const next = orbMode === "3d" ? "2d" : "3d";
+  try { localStorage.setItem(ORB_KEY, next); } catch { /* storage blocked */ }
+  useOrb(next);
+});
+useOrb(orbMode);
 const odo = new Odometer($("odometer"), { decimals: 4, prefix: "$" });
 const chart = new LineChart($("lineChart"), $("chartTip"));
 const donut = new Donut($("donut"), $("donutCenter"));
