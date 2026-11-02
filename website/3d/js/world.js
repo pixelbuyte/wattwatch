@@ -64,7 +64,7 @@ function plasterTexture() {
 }
 
 export class World {
-  constructor(canvas, { width, height, pixelRatio = Math.min(devicePixelRatio || 1, 2), quality = "high", dashboardUrl } = {}) {
+  constructor(canvas, { width, height, pixelRatio = Math.min(devicePixelRatio || 1, 2), quality = "high", dashboardUrl, orbOctaves = 5 } = {}) {
     this.quality = quality;
     this.rng = mulberry32(11);
     const r = (this.renderer = new THREE.WebGLRenderer({ canvas, antialias: quality !== "low", powerPreference: "high-performance",
@@ -95,7 +95,7 @@ export class World {
     this.pc = buildPC();
     this.pc.group.position.copy(PC_POS);
     scene.add(this.pc.group);
-    this.orb = new PlasmaOrb({ radius: 0.115, seed: 7 });
+    this.orb = new PlasmaOrb({ radius: 0.115, seed: 7, octaves: orbOctaves });
     this.orb.group.position.copy(ORB_POS);
     this.orb.setPixelRatio(pixelRatio);
     scene.add(this.orb.group);

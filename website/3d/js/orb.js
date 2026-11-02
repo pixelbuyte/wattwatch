@@ -43,7 +43,8 @@ function glowTexture() {
 }
 
 export class PlasmaOrb {
-  constructor({ radius = 0.12, seed = 7 } = {}) {
+  constructor({ radius = 0.12, seed = 7, octaves = 5 } = {}) {
+    const NOISE = SNOISE.replace("i<5", `i<${octaves}`);
     this.radius = radius;
     this.rng = mulberry32(seed);
     this.group = new THREE.Group();
@@ -67,7 +68,7 @@ export class PlasmaOrb {
         vertexShader: /* glsl */ `
           uniform float uTime; uniform float uLoad;
           varying vec3 vPos; varying vec3 vNormal; varying vec3 vView;
-          ${SNOISE}
+          ${NOISE}
           void main(){
             vec3 p = position;
             float wob = snoise(normalize(position)*2.2 + vec3(0.0, uTime*0.6, 0.0));
@@ -82,7 +83,7 @@ export class PlasmaOrb {
           uniform float uTime; uniform float uLoad;
           uniform vec3 uColA; uniform vec3 uColB; uniform vec3 uColHot;
           varying vec3 vPos; varying vec3 vNormal; varying vec3 vView;
-          ${SNOISE}
+          ${NOISE}
           void main(){
             vec3 nrm = normalize(vNormal);
             vec3 vd = normalize(vView);
@@ -90,10 +91,10 @@ export class PlasmaOrb {
             float sp = 0.16 + uLoad * 1.1;
             float t = uTime * sp;
             vec3 p = normalize(vPos);
-            // domain-warped flow field over the sphere
-            vec3 q = vec3(fbm(p*1.1 + vec3(0.0, t*0.35, 0.0)),
-                          fbm(p*1.1 + vec3(5.2, 1.3, t*0.25)),
-                          fbm(p*1.1 + vec3(1.7, 9.2, -t*0.3)));
+            // domain-warped flow field over the sphere (single-octave warp keeps it cheap and smooth)
+            vec3 q = 0.6 * vec3(snoise(p*1.1 + vec3(0.0, t*0.35, 0.0)),
+                                snoise(p*1.1 + vec3(5.2, 1.3, t*0.25)),
+                                snoise(p*1.1 + vec3(1.7, 9.2, -t*0.3)));
             float n = fbm(p*0.95 + 1.25*q + vec3(t*0.1));
             float n2 = snoise(p*2.2 + q*1.5 + vec3(0.0, t*0.5, t*0.35));
             // thin veins of current where the warped noise crosses zero

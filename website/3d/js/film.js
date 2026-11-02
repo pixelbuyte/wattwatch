@@ -1,9 +1,9 @@
-// WattWatch motion film: a deterministic 30 fps timeline over the 3D world plus kinetic type.
+// WattWatch motion film: a deterministic 24 fps timeline over the 3D world plus kinetic type.
 // Rendered frame by frame (window.__renderFrame(i)) by a headless browser, then encoded with ffmpeg.
 import * as THREE from "three";
 import { World, ORB_POS, PLUG_POS } from "./world.js";
 
-export const FPS = 30;
+export const FPS = 24;
 export const DURATION = 29;
 const W = 1920, H = 1080;
 const $ = (id) => document.getElementById(id);
@@ -13,7 +13,7 @@ const easeOut = (x) => 1 - Math.pow(1 - clamp01(x), 3);
 const easeInOut = (x) => { x = clamp01(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
 const lerp = (a, b, t) => a + (b - a) * t;
 
-const world = new World($("gl"), { width: W, height: H, pixelRatio: 1, quality: "high", dashboardUrl: "../assets/dashboard.webp" });
+const world = new World($("gl"), { width: W, height: H, pixelRatio: 1, quality: "high", dashboardUrl: "../assets/dashboard.webp", orbOctaves: 4 });
 world.watts = 4;
 world.setWatts(4);
 
